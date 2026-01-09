@@ -3,7 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Only load .env file if it exists and we are not in a production environment
+# Render sets RENDER=true, so we can check for that or just check if .env exists
+if os.path.exists(".env") and os.getenv("RENDER") is None:
+    load_dotenv()
 
 app = FastAPI(title="Aegis AI", description="The Adaptive, Curriculum-Aware Exam Preparation Ecosystem")
 

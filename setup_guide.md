@@ -44,3 +44,18 @@ This project is configured for deployment on [Render](https://render.com/).
 If you prefer to set up services manually on Render:
 1.  **Backend**: Create a "Web Service", choose "Docker", set Context to `backend`.
 2.  **Frontend**: Create a "Web Service", choose "Docker", set Context to `frontend`.
+
+### Setting Up AI (API Keys)
+
+To enable AI features on Render, you must securely provide your API keys:
+
+1.  Go to your **Backend Service** dashboard on Render.
+2.  Click on the **Environment** tab.
+3.  Click **Add Environment Variable**.
+4.  Add the following keys:
+    -   `GOOGLE_API_KEY`: Your Gemini API Key.
+    -   `GROQ_API_KEY`: Your Groq API Key (if used).
+    -   Any other keys from your local `.env`.
+5.  Click **Save Changes**. Render will automatically redeploy your service with the new keys.
+
+> **Note**: Do NOT commit your `.env` file to GitHub. Render injects these variables directly into the container at runtime.
