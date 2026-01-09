@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DOC_ENV=development
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    # Mount source code for hot reloading (if supported by the runner stage, or override command)
+    # Note: The 'runner' stage in our prod Dockerfile isn't optimized for dev. 
+    # For dev with docker-compose, usually you'd want a dev specific target or just use npm run dev.
+    # But for testing the prod build:
+    depends_on:
+      - backend

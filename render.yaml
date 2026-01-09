@@ -1,0 +1,24 @@
+services:
+  # Backend Service
+  - type: web
+    name: aegis-backend
+    runtime: docker
+    repo: https://github.com/your-repo/aegis # This will be auto-detected by Render usually, but good to have structure
+    rootDir: backend
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+    plan: free # Optional, defaults to starter usually
+    region: oregon # or your preferred region
+    
+  # Frontend Service
+  - type: web
+    name: aegis-frontend
+    runtime: docker
+    rootDir: frontend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # You might need to add the backend URL here after deployment
+      # - key: NEXT_PUBLIC_API_URL
+      #   value: https://aegis-backend.onrender.com

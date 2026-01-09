@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from .routers import ingest
+from routers import ingest
 
 app.include_router(ingest.router)
 
