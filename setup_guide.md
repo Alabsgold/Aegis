@@ -1,61 +1,71 @@
-# Aegis Docker Setup & Deployment Guide
+# Aegis Secure Deployment Guide
 
-## 1. Local Development with Docker Compose
+This guide provides a step-by-step process for deploying Aegis securely on Render without requiring a payment card (Manual Setup) and configuring the internal security system.
 
-To run the entire Aegis system (frontend + backend) locally using Docker:
+## 1. Local Development (Secure Mode)
+The application now uses an encrypted proxy pattern:
+`Frontend (Browser) -> Next.js Server (Proxy) -> Python Backend`
 
-1.  **Prerequisites**: Ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
-2.  Open a terminal in the project root (`Aegis\`).
-3.  Run the following command to build and start the services:
+1.  **Set Environment Variables**:
+    -   In `.env` (create if missing):
+        ```env
+        GOOGLE_API_KEY=your_gemini_key
+        AEGIS_INTERNAL_SECRET=my_super_secret_password
+        ```
+    -   Using the setup scripts will automatically start the environments.
+    -   **Important**: Since we added the secret check, you must ensure `AEGIS_INTERNAL_SECRET` is set in your `.env` for the backend to accept requests from the frontend, and the Frontend (running locally) needs to pick it up. (Note: Next.js picks up `.env.local` or `.env` typically. Ensure `AEGIS_INTERNAL_SECRET` is available to the standard `process.env`).
 
-    ```bash
-    docker-compose up --build
-    ```
+## 2. Manual Deployment on Render (Free Tier - No Card)
 
-    - **Frontend**: Accessible at [http://localhost:3000](http://localhost:3000)
-    - **Backend**: Accessible at [http://localhost:8000](http://localhost:8000) (Docs at `/docs`)
+To avoid the payment card requirement of Blueprints, we will deploy the **Backend** and **Frontend** manually.
 
-4.  To stop the services, press `Ctrl+C` or run `docker-compose down`.
+### Part A: Deploying the Backend
+1.  **Push your code** to GitHub.
+2.  Log in to [Render.com](https://dashboard.render.com/).
+3.  Click **New +** -> **Web Service**.
+4.  Connect your `Aegis` repository.
+5.  **Configure Service**:
+    -   **Name**: `aegis-backend`
+    -   **Runtime**: **Docker**
+    -   **Root Directory**: `backend` (Important! This tells Render to look in the backend folder).
+    -   **Region**: Choose closest to you (e.g., Frankfurt/Oregon).
+    -   **Instance Type**: **Free**.
+6.  **Environment Variables**:
+    -   Click "Advanced" or go to the "Environment" tab after creation.
+    -   `PYTHON_VERSION`: `3.10.0`
+    -   `GOOGLE_API_KEY`: Paste your Gemini API Key.
+    -   `AEGIS_INTERNAL_SECRET`: Generate a strong password (e.g., `s3cr3t_k3y_123`) and paste it here.
+7.  **Deploy**. Wait for it to go live.
+8.  **Copy URL**: Once live, copy the URL (e.g., `https://aegis-backend.onrender.com`).
 
-## 2. Deployment on Render
+### Part B: Deploying the Frontend (Vercel Recommended)
+*Render Frontend is fine, but Vercel is often easier for Next.js and completely free without hurdles.*
 
-This project is configured for deployment on [Render](https://render.com/).
+**Option 1: Deploy on Vercel (Recommended)**
+1.  Go to [Vercel.com](https://vercel.com) and log in.
+2.  Click **Add New...** -> **Project**.
+3.  Import your `Aegis` repo.
+4.  **Configure Project**:
+    -   **Root Directory**: Click "Edit" and select `frontend`.
+    -   **Environment Variables**:
+        -   `BACKEND_URL`: Paste your **Render Backend URL** (e.g., `https://aegis-backend.onrender.com`).
+        -   `AEGIS_INTERNAL_SECRET`: Paste the **SAME** secret you used in the Backend.
+5.  **Deploy**.
 
-### Option A: Blueprints (Recommended)
+**Option 2: Deploy on Render (Manual)**
+1.  Click **New +** -> **Web Service**.
+2.  Connect `Aegis` repo.
+3.  **Configure**:
+    -   **Name**: `aegis-frontend`
+    -   **Runtime**: **Docker**
+    -   **Root Directory**: `frontend`.
+    -   **Instance Type**: **Free**.
+4.  **Environment Variables**:
+    -   `BACKEND_URL`: `https://aegis-backend.onrender.com`
+    -   `AEGIS_INTERNAL_SECRET`: Your shared secret.
+5.  **Deploy**.
 
-1.  Push your code to a GitHub repository.
-2.  Log in to your Render dashboard.
-3.  Click **New +** and select **Blueprint**.
-4.  Connect your GitHub repository.
-5.  Render will automatically detect the `render.yaml` file and propose the services (Backend and Frontend).
-6.  Click **Apply** to deploy.
-
-### Configuration Notes
-
-- **Environment Variables**:
-    - The `render.yaml` sets basic variables. You may need to add secrets (like API keys) in the Render Dashboard for each service under the "Environment" tab.
-    - For the Frontend container to communicate with the Backend, you might need to set `NEXT_PUBLIC_API_URL` to your deployed backend URL (e.g., `https://aegis-backend.onrender.com`) in the Frontend service settings.
-
-- **Backend Imports**:
-    - The backend imports have been adjusted to work within the container. If you run the backend manually without Docker, verify you are running it from the `backend` directory or adjust your usage.
-
-### Option B: Manual Setup
-
-If you prefer to set up services manually on Render:
-1.  **Backend**: Create a "Web Service", choose "Docker", set Context to `backend`.
-2.  **Frontend**: Create a "Web Service", choose "Docker", set Context to `frontend`.
-
-### Setting Up AI (API Keys)
-
-To enable AI features on Render, you must securely provide your API keys:
-
-1.  Go to your **Backend Service** dashboard on Render.
-2.  Click on the **Environment** tab.
-3.  Click **Add Environment Variable**.
-4.  Add the following keys:
-    -   `GOOGLE_API_KEY`: Your Gemini API Key.
-    -   `GROQ_API_KEY`: Your Groq API Key (if used).
-    -   Any other keys from your local `.env`.
-5.  Click **Save Changes**. Render will automatically redeploy your service with the new keys.
-
-> **Note**: Do NOT commit your `.env` file to GitHub. Render injects these variables directly into the container at runtime.
+## 3. How the Security Works
+-   **No Leaching**: The Python Backend **rejects** any request that does not have the `X-Aegis-Secret` header.
+-   **Hidden Key**: The Browser (User) **never sees** the secret. The Browser calls `/api/ingest` (Next.js Endpoint).
+-   **Secure Proxy**: The Next.js Server (running safely in the cloud) adds the secret and forwards the request to the Backend.

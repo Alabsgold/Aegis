@@ -24,6 +24,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
+
+@app.middleware("http")
+async def verify_secret(request: Request, call_next):
+    # Allow health check without secret
+    if request.url.path == "/" or request.url.path == "/docs" or request.url.path == "/openapi.json":
+        return await call_next(request)
+    
+    # Check for secret in headers
+    expected_secret = os.getenv("AEGIS_INTERNAL_SECRET")
+    
+    # If secret is set in env, enforce it. 
+    # If not set (local dev default), we might skip or warn. 
+    # For strict security as requested, we enforce if it's a production-like env or just enforce it always if user sets it.
+    if expected_secret:
+        auth_header = request.headers.get("X-Aegis-Secret")
+        if auth_header != expected_secret:
+            return JSONResponse(status_code=403, content={"detail": "Unauthorized: Invalid Secret"})
+            
+    return await call_next(request)
+
 from routers import ingest
 
 app.include_router(ingest.router)

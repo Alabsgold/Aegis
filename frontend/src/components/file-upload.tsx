@@ -44,8 +44,8 @@ export function FileUpload() {
         formData.append("file", file)
 
         try {
-            // Assuming backend is at localhost:8000
-            const res = await fetch("http://localhost:8000/ingest", {
+            // Call our local Next.js proxy instead of direct backend
+            const res = await fetch("/api/ingest", {
                 method: "POST",
                 body: formData,
             })
